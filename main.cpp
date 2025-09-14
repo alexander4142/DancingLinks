@@ -41,7 +41,7 @@ vector<Node*> createHeaderList(int numColumns) {
     return headers;
 }
 
-void createNodes(const vector<int>& data, const vector<Node*>& headers) {
+void createNodes(const vector<string>& data, const vector<Node*>& headers) {
     int numRows = data.size();
     if (numRows == 0) return;
     int numColumns = headers.size();
@@ -53,7 +53,7 @@ void createNodes(const vector<int>& data, const vector<Node*>& headers) {
         // Iterate over each column for the current row
         for (int c = 0; c < numColumns; ++c) {
             // Check if a node should exist at this position (r, c)
-            if ((data[r] >> (numColumns - 1 - c)) & 1) {
+            if (data[r][2 * c] == '1') { // Assuming space-separated values
                 // 1. Create the new node
                 Node* newNode = new Node(r, c);
                 newNode->colHeader = headers[c];
@@ -102,7 +102,7 @@ void printRow(Node* rowNode, vector<int>& activeColumns) {
     Node* current = rowNode;
     for (int c : activeColumns) {
         if (current->colID == c) {
-            cout << "1 ";
+            std::cout << "1 ";
             current = current->right;
         } else {
             cout << "0 ";
@@ -185,15 +185,17 @@ void uncover(Node* col) {
 }
 
 // Function for the dancing links algorithm
-void solve(Node* h, vector<int>& solution, int& numSolutions) {
+void solve(Node* h, vector<int>& solution, int& numSolutions, bool printSolutions) {
     if (h->right == h) {
         // cout << "Solution found: ";
         numSolutions++;
-        for (size_t i = 0; i < solution.size(); i++) {
-            cout << solution[i];
-            if (i + 1 < solution.size()) cout << " ";
+        if (printSolutions) {
+            for (size_t i = 0; i < solution.size(); i++) {
+                cout << solution[i];
+                if (i + 1 < solution.size()) cout << " ";
+            }
+            cout << "\n";
         }
-        cout << "\n";
         return;
     }
 
@@ -213,7 +215,7 @@ void solve(Node* h, vector<int>& solution, int& numSolutions) {
             cover(n->colHeader);
         }
 
-        solve(h, solution, numSolutions);
+        solve(h, solution, numSolutions, printSolutions);
         solution.pop_back();
         
         for (Node* n = row->left; n != row; n = n->left) {
@@ -240,7 +242,7 @@ int binaryStringToInt(const string& binaryStr) {
 }
 
 // Function for reading and parsing a text file
-vector<int> readFile(const string& filePath) {
+vector<string> readFile(const string& filePath) {
     ifstream file(filePath);
     if (!file.is_open()) {
         cerr << "Error opening file: " << filePath << endl;
@@ -254,18 +256,18 @@ vector<int> readFile(const string& filePath) {
     file.ignore(); // Ignore the newline character after the number
 
     // Read the rest of the file line by line, storing them as integers in a vector
-    vector<int> data;
+    vector<string> data;
     string line;
     while (getline(file, line)) {
         // Process each line
         // The first line is a number indicating the number of columns
         // The subsequent lines contain space-separated binary values (0s and 1s)
         // which should be read as integer bits.
-        data.push_back(binaryStringToInt(line));
+        data.push_back(line);
     }
 
     file.close();
-    data.push_back(numColumns); // Remove the last element if it was added by mistake
+    data.push_back(to_string(numColumns)); // Remove the last element if it was added by mistake
     return data;
 }
 
@@ -285,13 +287,29 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    string filePath = argv[1];  // the first argument after the program name
-    vector<int> data = readFile(filePath);
+    string filePath;
+    bool printSolutions = false;
+
+    // Parse args: e.g. ./dlx file.txt -p
+    for (int i = 1; i < argc; i++) {
+        string arg = argv[i];
+        if (arg == "-p") {
+            printSolutions = true;
+        } else {
+            filePath = arg;
+        }
+    }
+
+    vector<string> data = readFile(filePath);
     int numSolutions = 0;
 
-    int numColumns = data.back(); // Last element is the number of columns
+    int numColumns = stoi(data.back()); // Last element is the number of columns
     data.pop_back(); // Remove the last element as it's not part of the matrix
     int numRows = data.size();
+
+    // for (string& row : data) {
+    //     cout << row << endl;
+    // }
     // cout << "Number of rows: " << numRows << endl;
 
     Node* h = new Node(-1, -1); // Master header node
@@ -301,9 +319,17 @@ int main(int argc, char* argv[]) {
     linkHorizontal(h, headers[0]);
     linkHorizontal(headers.back(), h);
     createNodes(data, headers);
+    // printMatrix(h);
+    // Node* temp = h->right;
+    // cover(temp); // Example of covering the first column
+    // cout << "After covering first column:" << endl;
+    // printMatrix(h);
+    // uncover(temp); // Uncovering it back
+    // cout << "After uncovering first column:" << endl;
+    // printMatrix(h);
 
     vector<int> solution;
-    solve(h, solution, numSolutions);
+    solve(h, solution, numSolutions, printSolutions);
     cout << "Total number of solutions found: " << numSolutions << endl;
     return 0;
 }
