@@ -226,6 +226,38 @@ void solve(Node* h, vector<int>& solution, int& numSolutions, bool printSolution
     uncover(col);
 }
 
+void countSolutions(Node* h, int& numSolutions) {
+    if (h->right == h) {
+        // cout << "Solution found: ";
+        numSolutions++;
+        return;
+    }
+
+    // Choose column with the smallest nodeCount
+    Node* col = h->right;
+    for (Node* c = h->right; c != h; c = c->right) {
+        if (c->nodeCount < col->nodeCount) {
+            col = c;
+        }
+    }
+
+    cover(col);
+
+    for (Node* row = col->down; row != col; row = row->down) {
+        for (Node* n = row->right; n != row; n = n->right) {
+            cover(n->colHeader);
+        }
+
+        countSolutions(h, numSolutions);
+        
+        for (Node* n = row->left; n != row; n = n->left) {
+            uncover(n->colHeader);
+        }
+    }
+
+    uncover(col);
+}
+
 // Function for converting a string of space separated '0's and '1's, which represent bits, to an integer
 int binaryStringToInt(const string& binaryStr) {
     int result = 0;
@@ -289,12 +321,15 @@ int main(int argc, char* argv[]) {
 
     string filePath;
     bool printSolutions = false;
+    bool countOnly = false;
 
     // Parse args: e.g. ./dlx file.txt -p
     for (int i = 1; i < argc; i++) {
         string arg = argv[i];
         if (arg == "-p") {
             printSolutions = true;
+        } else if (arg == "-c") {
+            countOnly = true;
         } else {
             filePath = arg;
         }
@@ -329,7 +364,14 @@ int main(int argc, char* argv[]) {
     // printMatrix(h);
 
     vector<int> solution;
-    solve(h, solution, numSolutions, printSolutions);
+    if (countOnly) {
+        countSolutions(h, numSolutions);
+        cout << "Total number of solutions found: " << numSolutions << endl;
+        return 0;
+    } else {
+        cout << "Finding all solutions..." << endl;
+        solve(h, solution, numSolutions, printSolutions);
+    }
     cout << "Total number of solutions found: " << numSolutions << endl;
     return 0;
 }
