@@ -9,7 +9,7 @@ struct Node {
     Node *left, *right, *up, *down;
     int rowID, colID;
     int nodeCount; // Number of 1s in the column (for header nodes)
-    Node* colHeader;     // Pointer to the column header (for data nodes)
+    Node* colHeader; // Pointer to the column header (for data nodes)
 
     Node(int r = -1, int c = -1) : rowID(r), colID(c), nodeCount(0) {
         left = right = up = down = colHeader = this; // Initialize pointers to self
@@ -87,8 +87,7 @@ void createNodes(const vector<string>& data, const vector<Node*>& headers) {
     }
 }
 
-
-// Function for inserting a node into an ordered vector based on rowID
+// Function for inserting a node into an ordered vector based on rowID, used in printMatrix
 void insert(vector<Node*>& vec, Node* newNode) {
     auto it = vec.begin();
     while (it != vec.end() && (*it)->rowID <= newNode->rowID) {
@@ -97,7 +96,7 @@ void insert(vector<Node*>& vec, Node* newNode) {
     vec.insert(it, newNode);
 }
 
-// Function for printing a row
+// Function for printing a row, used in printMatrix
 void printRow(Node* rowNode, vector<int>& activeColumns) {
     Node* current = rowNode;
     for (int c : activeColumns) {
@@ -184,10 +183,9 @@ void uncover(Node* col) {
     }
 }
 
-// Function for the dancing links algorithm
+// Function implementing Knuth's Algorithm X
 void solve(Node* h, vector<int>& solution, int& numSolutions, bool printSolutions) {
     if (h->right == h) {
-        // cout << "Solution found: ";
         numSolutions++;
         if (printSolutions) {
             for (size_t i = 0; i < solution.size(); i++) {
@@ -226,6 +224,7 @@ void solve(Node* h, vector<int>& solution, int& numSolutions, bool printSolution
     uncover(col);
 }
 
+// Similar to solve, but only counts solutions without storing them
 void countSolutions(Node* h, int& numSolutions) {
     if (h->right == h) {
         // cout << "Solution found: ";
@@ -258,21 +257,6 @@ void countSolutions(Node* h, int& numSolutions) {
     uncover(col);
 }
 
-// Function for converting a string of space separated '0's and '1's, which represent bits, to an integer
-int binaryStringToInt(const string& binaryStr) {
-    int result = 0;
-    size_t pos = 0, prev = 0;
-    while ((pos = binaryStr.find(' ', prev)) != string::npos) {
-        result = (result << 1) | (binaryStr[prev] - '0');
-        prev = pos + 1;
-    }
-    // Process the last bit
-    if (prev < binaryStr.size()) {
-        result = (result << 1) | (binaryStr[prev] - '0');
-    }
-    return result;
-}
-
 // Function for reading and parsing a text file
 vector<string> readFile(const string& filePath) {
     ifstream file(filePath);
@@ -302,14 +286,6 @@ vector<string> readFile(const string& filePath) {
     data.push_back(to_string(numColumns)); // Remove the last element if it was added by mistake
     return data;
 }
-
-void printColumnCounts(Node* h) {
-    for (Node* c = h->right; c != h; c = c->right) {
-        cout << "Col " << c->colID << " count=" << c->nodeCount << endl;
-    }
-}
-
-
 
 int main(int argc, char* argv[]) {
     // cout << "Dancing links!" << endl;
@@ -342,27 +318,16 @@ int main(int argc, char* argv[]) {
     data.pop_back(); // Remove the last element as it's not part of the matrix
     int numRows = data.size();
 
-    // for (string& row : data) {
-    //     cout << row << endl;
-    // }
-    // cout << "Number of rows: " << numRows << endl;
-
     Node* h = new Node(-1, -1); // Master header node
     linkHorizontal(h, h); // Initialize circular linking
 
+    // Create header nodes and link them
     vector<Node*> headers = createHeaderList(numColumns);
     linkHorizontal(h, headers[0]);
     linkHorizontal(headers.back(), h);
     createNodes(data, headers);
-    // printMatrix(h);
-    // Node* temp = h->right;
-    // cover(temp); // Example of covering the first column
-    // cout << "After covering first column:" << endl;
-    // printMatrix(h);
-    // uncover(temp); // Uncovering it back
-    // cout << "After uncovering first column:" << endl;
-    // printMatrix(h);
 
+    // Find and print solutions
     vector<int> solution;
     if (countOnly) {
         countSolutions(h, numSolutions);
